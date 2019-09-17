@@ -1,0 +1,6 @@
+
+*.xml
+*.iml
+.vscode/settings.json
+venv/pyvenv.cfg
+venv/pyvenv.cfg

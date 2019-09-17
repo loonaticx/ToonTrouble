@@ -1,5 +1,6 @@
 from direct.gui.DirectButton import DirectButton
 from direct.gui.DirectScrolledList import DirectScrolledList
+from direct.gui.OnscreenText import OnscreenText
 from direct.showbase.ShowBase import ShowBase
 from direct.task import Task
 from direct.controls.GravityWalker import GravityWalker
@@ -15,15 +16,32 @@ import math
 from direct.controls import ControlManager
 import LightMgr
 
+#borrowed the xray mod from /samples/culling/portal_culling.py
+
+def addInstructions(pos, msg):
+    return OnscreenText(text=msg, style=1, fg=(1, 1, 1, 1),
+                        parent=base.a2dTopLeft, align=TextNode.ALeft,
+                        pos=(0.08, -pos - 0.04), scale=.05)
+
 class Landwalker(ShowBase):
     def __init__(self):
         ShowBase.__init__(self)
-        self.OSD = True
 
-        #self.controlManager = ControlManager.ControlManager(True, False)
+        #Config stuff here
+        self.OSD = True
+        self.shadersLoaded = False
+        self.xray_mode = False
+        self.show_model_bounds = False
+
+        self.inst1 = addInstructions(0.06, "change")
+        self.inst2 = addInstructions(0.12, "me")
+        self.inst3 = addInstructions(0.18, "thanks")
+        self.inst4 = addInstructions(0.24, "lol")
+
 
         #Store which keys are currently pressed
         self.keyMap = {
+            "1": 0,
             "escape": 0,
             "left": 0,
             "right": 0,
@@ -38,6 +56,8 @@ class Landwalker(ShowBase):
         base.localAvatar = localAvatar
 
         self.LoadButtons()
+        self.loadShaders()
+
         self.objectList = list()
 
         # Floater Object
@@ -51,7 +71,12 @@ class Landwalker(ShowBase):
         self.camera.reparentTo(self.floater)
 
         # Accept the control keys for movement and rotation
+        self.accept('f', self.toggleWireframe)
+        self.accept('x', self.toggle_xray_mode)
+        self.accept('b', self.toggle_model_bounds)
         self.accept("escape", self.toggle_osd)
+        self.accept("1", self.loadCartoonShaders)
+        self.accept("2", self.unloadShaders)
         self.accept("arrow_left", self.setKey, ["left", True])
         self.accept("arrow_right", self.setKey, ["right", True])
         self.accept("arrow_up", self.setKey, ["forward", True])
@@ -77,6 +102,8 @@ class Landwalker(ShowBase):
         # object/node and only it and the nodes below it would be affected by
         # the fog.
         self.render.setFog(self.fog)
+
+
 
         self.offset = 3.2375
 
@@ -186,6 +213,41 @@ class Landwalker(ShowBase):
         testobjectindex = len(self.objectList)
         self.removeWorld()
 
+    def loadShaders(self):
+        normalsBuffer = self.win.makeTextureBuffer("normalsBuffer", 0, 0)
+        normalsBuffer.setClearColor(LVecBase4(0.5, 0.5, 0.5, 1))
+        self.normalsBuffer = normalsBuffer
+        normalsCamera = self.makeCamera(
+            normalsBuffer, lens=self.cam.node().getLens())
+        normalsCamera.node().setScene(self.render)
+
+        drawnScene = self.normalsBuffer.getTextureCard()
+        drawnScene.setTransparency(1)
+        drawnScene.setColor(1, 1, 1, 0)
+        drawnScene.reparentTo(self.render2d)
+        self.drawnScene = drawnScene
+
+    def toggle_xray_mode(self):
+        """Toggle X-ray mode on and off. This is useful for seeing the
+        effectiveness of the portal culling."""
+        self.xray_mode = not self.xray_mode
+        if self.xray_mode:
+            self.scene.setColorScale((1, 1, 1, 0.5))
+            self.scene.setTransparency(TransparencyAttrib.MDual)
+        else:
+            self.scene.setColorScaleOff()
+            self.scene.setTransparency(TransparencyAttrib.MNone)
+
+    def toggle_model_bounds(self):
+        """Toggle bounding volumes on and off on the models."""
+        self.show_model_bounds = not self.show_model_bounds
+        if self.show_model_bounds:
+            for model in self.objectList:
+                model.showBounds()
+        else:
+            for model in self.objectList:
+                model.hideBounds()
+
     def getAirborneHeight(self):
         return self.offset + 0.025000000000000001
 
@@ -205,7 +267,21 @@ class Landwalker(ShowBase):
 
         return Task.cont
 
+    def unloadShaders(self):
+        if self.shadersLoaded:
+            self.drawnScene.hide()
+            self.shadersLoaded = False
 
+    def loadCartoonShaders(self):
+        if not self.shadersLoaded:
+            self.separation = 0.001
+            self.cutoff = 0.3
+            inkGen = loader.loadShader("shaders/inkGen.sha")
+            self.drawnScene.setShader(inkGen)
+            self.drawnScene.setShaderInput("separation", LVecBase4(self.separation, 0, self.separation, 0))
+            self.drawnScene.setShaderInput("cutoff", LVecBase4(self.cutoff))
+            self.drawnScene.show()
+            self.shadersLoaded = True
 
 
     # Records the state of the arrow keys
