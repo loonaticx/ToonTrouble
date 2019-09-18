@@ -9,6 +9,7 @@ import ActorDict
 from panda3d.core import CollisionTraverser, CollisionNode
 from panda3d.core import Filename, AmbientLight, DirectionalLight
 from panda3d.core import PandaNode, NodePath, Camera, TextNode
+from direct.filter.CommonFilters import CommonFilters
 import random
 import sys
 import os
@@ -17,6 +18,9 @@ from direct.controls import ControlManager
 import LightMgr
 
 #borrowed the xray mod from /samples/culling/portal_culling.py
+# https://www.panda3d.org/manual/?title=Common_Image_Filters
+#possibly make a slider for bloom
+#YO WHAT IF I MAKE A BENCHMARK PROGRAM
 
 def addInstructions(pos, msg):
     return OnscreenText(text=msg, style=1, fg=(1, 1, 1, 1),
@@ -27,17 +31,29 @@ class Landwalker(ShowBase):
     def __init__(self):
         ShowBase.__init__(self)
 
+
         #Config stuff here
+        self.filters = CommonFilters(base.win, base.cam)
+        self.AOEnabled = False
+        self.bloomEnabled = False
+        self.invertEnabled = False
         self.OSD = True
         self.shadersLoaded = False
         self.xray_mode = False
         self.show_model_bounds = False
+        self.fogEnabled = True
+        self.mouseEnabled = False
 
-        self.inst1 = addInstructions(0.06, "change")
-        self.inst2 = addInstructions(0.12, "me")
-        self.inst3 = addInstructions(0.18, "thanks")
-        self.inst4 = addInstructions(0.24, "lol")
-
+        #Adding onscreen text here
+        self.inst1 = addInstructions(0.06, "Press F to toggle wireframe")
+        self.inst2 = addInstructions(0.12, "Press X to toggle xray")
+        self.inst3 = addInstructions(0.18, "Press 1 to activate cartoon shading")
+        self.inst4 = addInstructions(0.24, "Press 2 to deactivate cartoon shading")
+        self.inst4 = addInstructions(0.30, "Press 3 to toggle fog")
+        self.inst4 = addInstructions(0.36, "Press 4 to toggle free camera")
+        self.inst4 = addInstructions(0.42, "Press 5 to toggle bloom")
+        self.inst4 = addInstructions(0.48, "Press 6 to toggle Ambient Occlusion")
+        self.inst4 = addInstructions(0.54, "Press Escape to toggle the onscreen debug")
 
         #Store which keys are currently pressed
         self.keyMap = {
@@ -51,16 +67,17 @@ class Landwalker(ShowBase):
             "cam-right": 0,
         }
 
+        #Loading required modules...
         self.loadWorld()
         localAvatar = self.getActor()
         base.localAvatar = localAvatar
-
         self.LoadButtons()
         self.loadShaders()
+        self.FogDensity = self.loadFog()
 
         self.objectList = list()
 
-        # Floater Object
+        # Floater Object (For camera)
         self.floater = NodePath(PandaNode("floater"))
         self.floater.reparentTo(self.actorBody)
         self.floater.setY(-10)
@@ -77,6 +94,14 @@ class Landwalker(ShowBase):
         self.accept("escape", self.toggle_osd)
         self.accept("1", self.loadCartoonShaders)
         self.accept("2", self.unloadShaders)
+        self.accept("3", self.toggleFog)
+        self.accept("4", self.toggleCamera)
+        self.accept("5", self.toggleBloom)
+        self.accept("6", self.toggleAmbientOcclusion)
+
+        #warning: bright! self.accept("6", self.toggleInvert)
+
+
         self.accept("arrow_left", self.setKey, ["left", True])
         self.accept("arrow_right", self.setKey, ["right", True])
         self.accept("arrow_up", self.setKey, ["forward", True])
@@ -88,20 +113,6 @@ class Landwalker(ShowBase):
 
         self.taskMgr.add(self.move, "moveTask")
 
-
-        # Create an instance of fog called 'distanceFog'.
-        #'distanceFog' is just a name for our fog, not a specific type of fog.
-        self.fog = Fog('distanceFog')
-        # Set the initial color of our fog to black.
-        self.fog.setColor(0, 0, 0)
-        # Set the density/falloff of the fog.  The range is 0-1.
-        # The higher the numer, the "bigger" the fog effect.
-        self.fog.setExpDensity(.01)
-        # We will set fog on render which means that everything in our scene will
-        # be affected by fog. Alternatively, you could only set fog on a specific
-        # object/node and only it and the nodes below it would be affected by
-        # the fog.
-        self.render.setFog(self.fog)
 
 
 
@@ -127,6 +138,8 @@ class Landwalker(ShowBase):
         # print(updateOnScreenDebug.enabled)
 
         onScreenDebug.enabled = True
+        base.setFrameRateMeter(True)
+        PStatClient.connect()
 
         base.taskMgr.add(self.updateOnScreenDebug, 'UpdateOSD')
 
@@ -200,6 +213,8 @@ class Landwalker(ShowBase):
                              text_scale=0.045, text_pos=(0, -0.007, 0), relief=None)
             myScrolledList.addItem(l)
 
+
+
     #will be used to spawn objects
     def spawnObject(self, modelName):
         #if spawned object already exists, we're gonna need to remove it
@@ -212,6 +227,14 @@ class Landwalker(ShowBase):
         print("Spawned Object: " + repr(spawnedObject))
         testobjectindex = len(self.objectList)
         self.removeWorld()
+
+    def loadFog(self):
+        self.fog = Fog('distanceFog')
+        self.fog.setColor(0, 0, 0)
+        self.fog.setExpDensity(.01)
+        self.render.setFog(self.fog)
+        self.fog.setOverallHidden(False)
+        return self.fog.getExpDensity()
 
     def loadShaders(self):
         normalsBuffer = self.win.makeTextureBuffer("normalsBuffer", 0, 0)
@@ -226,6 +249,47 @@ class Landwalker(ShowBase):
         drawnScene.setColor(1, 1, 1, 0)
         drawnScene.reparentTo(self.render2d)
         self.drawnScene = drawnScene
+
+    def toggleAmbientOcclusion(self):
+        if not self.AOEnabled:
+            self.filters.setAmbientOcclusion()
+            self.AOEnabled = True
+        else:
+            self.filters.delAmbientOcclusion()
+            self.AOEnabled = False
+
+    def toggleInvert(self):
+        if not self.invertEnabled:
+            self.filters.setInverted()
+            self.invertEnabled = True
+        else:
+            self.filters.delInverted()
+            self.invertEnabled = False
+
+    def toggleBloom(self):
+        if not self.bloomEnabled:
+            self.filters.setBloom()
+            self.bloomEnabled = True
+        else:
+            self.filters.delBloom()
+            self.bloomEnabled = False
+
+    def toggleCamera(self):
+        if not self.mouseEnabled:
+            base.enableMouse()
+            self.mouseEnabled = True
+        else:
+            base.disableMouse()
+            self.camera.setPosHpr(0, 0, 0, 0, 0, 0)
+            self.mouseEnabled = False
+
+    def toggleFog(self):
+        if not self.fogEnabled:
+            self.fog.setExpDensity(self.FogDensity)
+            self.fogEnabled = True
+        else:
+            self.fog.setExpDensity(0)
+            self.fogEnabled = False
 
     def toggle_xray_mode(self):
         """Toggle X-ray mode on and off. This is useful for seeing the
@@ -248,15 +312,15 @@ class Landwalker(ShowBase):
             for model in self.objectList:
                 model.hideBounds()
 
-    def getAirborneHeight(self):
-        return self.offset + 0.025000000000000001
-
     def toggle_osd(self):
         self.OSD = not self.OSD
         if self.OSD:
             self.onScreenDebug.enabled = True
         else:
             self.onScreenDebug.enabled = False
+
+    def getAirborneHeight(self):
+        return self.offset + 0.025000000000000001
 
     def updateOnScreenDebug(self, task):
         if(onScreenDebug.enabled):
@@ -274,8 +338,8 @@ class Landwalker(ShowBase):
 
     def loadCartoonShaders(self):
         if not self.shadersLoaded:
-            self.separation = 0.001
-            self.cutoff = 0.3
+            self.separation = 0.0015
+            self.cutoff = 0.35
             inkGen = loader.loadShader("shaders/inkGen.sha")
             self.drawnScene.setShader(inkGen)
             self.drawnScene.setShaderInput("separation", LVecBase4(self.separation, 0, self.separation, 0))
@@ -324,7 +388,6 @@ class Landwalker(ShowBase):
                 self.isMoving = False
 
         return task.cont
-
 
 
 demo = Landwalker()
