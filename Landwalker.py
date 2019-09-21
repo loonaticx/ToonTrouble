@@ -1,21 +1,21 @@
+import os
+from panda3d.core import *
+from panda3d.core import CollisionTraverser
+from panda3d.core import loadPrcFileData
+from panda3d.core import PandaNode, NodePath, TextNode
+import sys
+import ActorDict
+from direct.controls.GravityWalker import GravityWalker
+from direct.filter.CommonFilters import CommonFilters
 from direct.gui.DirectButton import DirectButton
 from direct.gui.DirectScrolledList import DirectScrolledList
+from direct.gui.OnscreenImage import OnscreenImage
 from direct.gui.OnscreenText import OnscreenText
 from direct.showbase.ShowBase import ShowBase
+from direct.stdpy.file import execfile
 from direct.task import Task
-from direct.controls.GravityWalker import GravityWalker
-from panda3d.core import *
-import ActorDict
-from panda3d.core import CollisionTraverser, CollisionNode
-from panda3d.core import Filename, AmbientLight, DirectionalLight
-from panda3d.core import PandaNode, NodePath, Camera, TextNode
-from direct.filter.CommonFilters import CommonFilters
-import random
-import sys
-import os
-import math
-from direct.controls import ControlManager
-import LightMgr
+import pstats
+
 
 #borrowed the xray mod from /samples/culling/portal_culling.py
 # https://www.panda3d.org/manual/?title=Common_Image_Filters
@@ -29,7 +29,9 @@ def addInstructions(pos, msg):
 
 class Landwalker(ShowBase):
     def __init__(self):
+        #loadPrcFile("Config.prc")
         ShowBase.__init__(self)
+        #self.loadPStats()
 
 
         #Config stuff here
@@ -44,17 +46,6 @@ class Landwalker(ShowBase):
         self.fogEnabled = True
         self.mouseEnabled = False
 
-        #Adding onscreen text here
-        self.inst1 = addInstructions(0.06, "Press F to toggle wireframe")
-        self.inst2 = addInstructions(0.12, "Press X to toggle xray")
-        self.inst3 = addInstructions(0.18, "Press 1 to activate cartoon shading")
-        self.inst4 = addInstructions(0.24, "Press 2 to deactivate cartoon shading")
-        self.inst4 = addInstructions(0.30, "Press 3 to toggle fog")
-        self.inst4 = addInstructions(0.36, "Press 4 to toggle free camera")
-        self.inst4 = addInstructions(0.42, "Press 5 to toggle bloom")
-        self.inst4 = addInstructions(0.48, "Press 6 to toggle Ambient Occlusion")
-        self.inst4 = addInstructions(0.54, "Press Escape to toggle the onscreen debug")
-
         #Store which keys are currently pressed
         self.keyMap = {
             "1": 0,
@@ -67,6 +58,51 @@ class Landwalker(ShowBase):
             "cam-right": 0,
         }
 
+        self.ButtonImage = loader.loadModel("phase_3/models/gui/quit_button.bam")
+        self.introButtons()
+
+
+    def introButtons(self):
+        def loadGame():
+            print("test")
+            Button1.removeNode()
+            imageObject.destroy()
+            self.loadGame()
+
+        imageObject = OnscreenImage(image='stat_board.png', pos=(0, 0, 0))
+        imageObject.setTransparency(TransparencyAttrib.MAlpha)
+
+        Button1 = DirectButton(frameSize=None, text="Load Game", image=(self.ButtonImage.find('**/QuitBtn_UP'),
+                                                                 self.ButtonImage.find('**/QuitBtn_DN'),
+                                                                 self.ButtonImage.find('**/QuitBtn_RLVR')),
+                               relief=None, command=loadGame, text_pos=(0, -0.015),
+                               geom=None, pad=(0.01, 0.01), suppressKeys=0, pos=(-.85, -0, -.93),
+                               text_scale=0.059999999999999998, borderWidth=(0.015, 0.01), scale=.7)
+
+        Button1.setPosHprScale(0.00, 0.00, 0.30, 0.00, 0.00, 0.00, 2.53, 2.53, 2.53)
+
+        Button2 = DirectButton(frameSize=None, text="Customize", image=(self.ButtonImage.find('**/QuitBtn_UP'),
+                                                                 self.ButtonImage.find('**/QuitBtn_DN'),
+                                                                 self.ButtonImage.find('**/QuitBtn_RLVR')),
+                               relief=None, command=loadGame, text_pos=(0, -0.015),
+                               geom=None, pad=(0.01, 0.01), suppressKeys=0, pos=(-.85, -0, -.93),
+                               text_scale=0.059999999999999998, borderWidth=(0.015, 0.01), scale=.7)
+
+        Button2.setPosHprScale(0.00, 0.00, -0.30, 0.00, 0.00, 0.00, 2.53, 2.53, 2.53)
+
+
+    def loadGame(self):
+        # Adding onscreen text here
+        self.inst1 = addInstructions(0.06, "Press F to toggle wireframe")
+        self.inst2 = addInstructions(0.12, "Press X to toggle xray")
+        self.inst3 = addInstructions(0.18, "Press 1 to activate cartoon shading")
+        self.inst4 = addInstructions(0.24, "Press 2 to deactivate cartoon shading")
+        self.inst4 = addInstructions(0.30, "Press 3 to toggle fog")
+        self.inst4 = addInstructions(0.36, "Press 4 to toggle free camera")
+        self.inst4 = addInstructions(0.42, "Press 5 to toggle bloom")
+        self.inst4 = addInstructions(0.48, "Press 6 to toggle Ambient Occlusion")
+        self.inst4 = addInstructions(0.54, "Press Escape to toggle the onscreen debug")
+
         #Loading required modules...
         self.loadWorld()
         localAvatar = self.getActor()
@@ -76,6 +112,8 @@ class Landwalker(ShowBase):
         self.FogDensity = self.loadFog()
 
         self.objectList = list()
+        self.objectList.append(self.scene)
+
 
         # Floater Object (For camera)
         self.floater = NodePath(PandaNode("floater"))
@@ -205,8 +243,9 @@ class Landwalker(ShowBase):
             itemFrame_pos=(0.35, 0, 0.43))
 
         modelArray = ['phase_4/models/neighborhoods/toontown_central.bam',
-                      'phase_13/models/parties/partyGrounds.bam']
-        nameArray = ['Toontown Central', 'Party Grounds']
+                      'phase_13/models/parties/partyGrounds.bam',
+                      'models/world.egg.pz']
+        nameArray = ['Toontown Central', 'Party Grounds', 'Default World']
 
         for index, name in enumerate(nameArray):
             l = DirectButton(text=name, image=(Buttons), extraArgs=[modelArray[index]], command=self.spawnObject,
@@ -214,19 +253,29 @@ class Landwalker(ShowBase):
             myScrolledList.addItem(l)
 
 
+    def loadPStats(self):
+        os.system("pstats.exe")
 
     #will be used to spawn objects
     def spawnObject(self, modelName):
         #if spawned object already exists, we're gonna need to remove it
+        while len(self.objectList) >= 1:
+            for world in self.objectList:
+                world.removeNode()
+            self.objectList.pop(0)
+
         spawnedObject = loader.loadModel(modelName)
         spawnedObject.reparentTo(render)
         spawnedObject.setPos(base.localAvatar.getPos())
+        #spawnedObject = self.scene
         #self.removeWorld(self.objectList.find(spawnedObject))
         self.objectList.append(spawnedObject)
         print("Model Name: " + repr(modelName))
         print("Spawned Object: " + repr(spawnedObject))
         testobjectindex = len(self.objectList)
-        self.removeWorld()
+        print(testobjectindex)
+        print(self.objectList)
+        #self.removeWorld()
 
     def loadFog(self):
         self.fog = Fog('distanceFog')
