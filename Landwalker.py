@@ -67,6 +67,7 @@ class Landwalker(ShowBase):
         def loadGame():
             print("Loading game...")
             Button1.removeNode()
+            Button2.removeNode()
             imageObject.destroy()
             self.loadGame()
 
@@ -245,8 +246,9 @@ class Landwalker(ShowBase):
 
         modelArray = ['phase_4/models/neighborhoods/toontown_central.bam',
                       'phase_13/models/parties/partyGrounds.bam',
-                      'models/world.egg.pz']
-        nameArray = ['Toontown Central', 'Party Grounds', 'Default World']
+                      'models/world.egg.pz',
+                      'custom/ship/ship.egg']
+        nameArray = ['Toontown Central', 'Party Grounds', 'Default World', 'Ship Test']
 
         for index, name in enumerate(nameArray):
             l = DirectButton(text=name, image=(Buttons), extraArgs=[modelArray[index]], command=self.spawnObject,
