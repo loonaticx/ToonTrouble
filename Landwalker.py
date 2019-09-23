@@ -15,6 +15,7 @@ from direct.showbase.ShowBase import ShowBase
 from direct.stdpy.file import execfile
 from direct.task import Task
 import pstats
+import ConfigMgr
 
 
 #borrowed the xray mod from /samples/culling/portal_culling.py
@@ -31,7 +32,7 @@ class Landwalker(ShowBase):
     def __init__(self):
         #loadPrcFile("Config.prc")
         ShowBase.__init__(self)
-        #self.loadPStats()
+        self.config = ConfigMgr.loadSettings()
 
 
         #Config stuff here
@@ -64,7 +65,7 @@ class Landwalker(ShowBase):
 
     def introButtons(self):
         def loadGame():
-            print("test")
+            print("Loading game...")
             Button1.removeNode()
             imageObject.destroy()
             self.loadGame()
@@ -252,10 +253,6 @@ class Landwalker(ShowBase):
                              text_scale=0.045, text_pos=(0, -0.007, 0), relief=None)
             myScrolledList.addItem(l)
 
-
-    def loadPStats(self):
-        os.system("pstats.exe")
-
     #will be used to spawn objects
     def spawnObject(self, modelName):
         #if spawned object already exists, we're gonna need to remove it
@@ -276,6 +273,11 @@ class Landwalker(ShowBase):
         print(testobjectindex)
         print(self.objectList)
         #self.removeWorld()
+
+
+    def loadPStats(self):
+        os.system("pstats.exe")
+
 
     def loadFog(self):
         self.fog = Fog('distanceFog')

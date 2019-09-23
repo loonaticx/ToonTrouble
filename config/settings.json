@@ -1,0 +1,13 @@
+{
+    "settings":
+    [
+        {
+            "want-ambient-occlusion": false,
+            "want-gay-ass-filters": false
+        },
+        {
+            "name": "player-dna",
+            "value": 3
+        }
+    ]
+}
