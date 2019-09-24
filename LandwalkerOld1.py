@@ -1,10 +1,9 @@
 import os
+
 from panda3d.core import *
 from panda3d.core import CollisionTraverser
-from panda3d.core import loadPrcFileData
 from panda3d.core import PandaNode, NodePath, TextNode
-import sys
-import ActorDict
+
 from direct.controls.GravityWalker import GravityWalker
 from direct.filter.CommonFilters import CommonFilters
 from direct.gui.DirectButton import DirectButton
@@ -12,10 +11,8 @@ from direct.gui.DirectScrolledList import DirectScrolledList
 from direct.gui.OnscreenImage import OnscreenImage
 from direct.gui.OnscreenText import OnscreenText
 from direct.showbase.ShowBase import ShowBase
-from direct.stdpy.file import execfile
 from direct.task import Task
-import pstats
-import ConfigMgr
+from src import ConfigManager, ActorDict
 
 
 #borrowed the xray mod from /samples/culling/portal_culling.py
@@ -32,7 +29,7 @@ class Landwalker(ShowBase):
     def __init__(self):
         #loadPrcFile("Config.prc")
         ShowBase.__init__(self)
-        self.config = ConfigMgr.loadSettings()
+        self.config = ConfigManager.loadSettings()
 
 
         #Config stuff here

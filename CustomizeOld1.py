@@ -3,36 +3,39 @@ from panda3d.core import Fog
 from direct.gui.DirectScrolledList import DirectScrolledList, DirectButton
 from direct.interval.FunctionInterval import Func
 from direct.interval.MetaInterval import Sequence
-from direct.showbase.ShowBase import ShowBase, Point3
-import ActorDict
+from direct.showbase.DirectObject import DirectObject
+from direct.showbase.ShowBase import Point3
+from src import ActorDict
+
 
 #ideas for changing torso:
 #for *each* file(texture) in directory(shirts), add each element into shirtList arr. do the same with pants, sleeve, etc
 #and then do a texture flip 180 degrees, attach texture to corresponding nodes, maybe a directScrollList might work..
+#i think we should revert this back into a class but instead of Showbase do DirectObject
 
 
-class Customize(ShowBase):
+class Customize(DirectObject):
 
     def __init__(self):
-        ShowBase.__init__(self)
-        self.testModel = loader.loadModel('phase_4/models/props/snowball.bam')
+        #ShowBase.__init__(self)
+        #self.testModel = loader.loadModel('phase_4/models/props/snowball.bam')
         self.loadScene()
-        base.disableMouse()
+        #base.disableMouse()
         #base.oobe()
         #print(self.camera.getPos())
-        self.testModel.reparentTo(render)
-        self.camera.setPos(0,0,0)
-        self.testModel.setPos(self.camera.getPos())
-        self.testModel.hide()
-        self.camera.reparentTo(self.testModel)
+        #self.testModel.reparentTo(render)
+        #self.camera.setPos(0,0,0)
+        #self.testModel.setPos(self.camera.getPos())
+        #self.testModel.hide()
+        #self.camera.reparentTo(self.testModel)
 
 
         #self.camInterval(self.camera)
-        self.camInterval(self.testModel)
+        #self.camInterval(self.testModel)
 
-        self.testTwo = loader.loadModel('phase_4/models/char/suitA-heads.bam')
-        self.testTwo.reparentTo(render)
-        self.testCogHeadsHere()
+        #self.testTwo = loader.loadModel('phase_4/models/char/suitA-heads.bam')
+        #self.testTwo.reparentTo(render)
+        #self.testCogHeadsHere()
 
     def testCogHeadsHere(self):
         modelArrTwo = ['phase_4/models/char/suitA-heads.bam']

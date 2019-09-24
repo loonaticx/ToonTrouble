@@ -1,8 +1,10 @@
-from direct.actor.Actor import Actor
+from panda3d.core import loadPrcFile
 
+from direct.actor.Actor import Actor
+loadPrcFile('../config/Config.prc')
 playerBody = Actor({
     # model dict
-    'suit': 'phase_3.5\models\char\suitB-mod.bam'},
+    'suit': 'phase_3.5/models/char/suitB-mod.bam'},
 
     # anim dict
     {'suit': {'neutral': 'phase_4/models/char/suitB-neutral.bam',

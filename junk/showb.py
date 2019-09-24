@@ -1,9 +1,7 @@
 from direct.showbase.ShowBase import ShowBase
 
-from panda3d.core import *
+from src import Landwalker
 
-import ActorDict
-import Landwalker
 land = Landwalker()
 
 class MyApp(ShowBase):
