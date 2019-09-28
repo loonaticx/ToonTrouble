@@ -4,14 +4,12 @@ from direct.showbase.ShowBase import ShowBase
 
 from src import Customize, Landwalker
 
-
 class MainMenu(ShowBase):
     def __init__(self):
         ShowBase.__init__(self)
 
         self.ButtonImage = loader.loadModel("phase_3/models/gui/quit_button.bam")
         self.introButtons()
-
 
     def introButtons(self):
         def loadGame():
@@ -23,7 +21,7 @@ class MainMenu(ShowBase):
             landFile.loadGame()
 
         def loadCustomize():
-            print ("Loading customize screen...")
+            print("Loading customize screen...")
             Button1.removeNode()
             Button2.removeNode()
             imageObject.destroy()

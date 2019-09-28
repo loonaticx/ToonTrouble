@@ -1,19 +1,17 @@
 from panda3d.core import Fog
-
-import ActorManager
 from direct.gui.DirectScrolledList import DirectScrolledList, DirectButton
 from direct.interval.FunctionInterval import Func
 from direct.interval.MetaInterval import Sequence
 from direct.showbase.ShowBase import Point3
-from src import GraphicEffects, ActorDict
+from src.scenefx import EffectsManager
+from src.actor import ActorManager
 
 #ideas for changing torso:
 #for *each* file(texture) in directory(shirts), add each element into shirtList arr. do the same with pants, sleeve, etc
 #and then do a texture flip 180 degrees, attach texture to corresponding nodes, maybe a directScrollList might work..
 
-#i think we should revert this back into a class but instead of Showbase do DirectObject
+graphicShaders = EffectsManager
 
-graphicShaders = GraphicEffects
 def testCogHeadsHere():
     modelArrTwo = ['phase_4/models/char/suitA-heads.bam']
     for modelName in modelArrTwo:
@@ -32,30 +30,34 @@ def annoyingTempHeadList():
     bigwig = loader.loadModel('phase_4/models/char/suitA-heads.bam').find('**/bigwig')
     return [backstabber, bigcheese, bigwig]
 
-
 objectList = list()
 actor = ActorManager
 
 def loadScene():
-    testModel = loader.loadModel('phase_4/models/props/snowball.bam')
-    testModel.reparentTo(render)
+    # Setting up the camera...
+    # This is a weird implementation, but it works!
+    secretCamera = loader.loadModel('phase_4/models/props/snowball.bam')
+    secretCamera.reparentTo(render)
     camera.setPos(0, 0, 0)
-    testModel.setPos(camera.getPos())
-    testModel.hide()
-    camera.reparentTo(testModel)
-
+    secretCamera.setPos(camera.getPos())
+    secretCamera.hide()
+    camera.reparentTo(secretCamera)
     # self.camInterval(self.camera)
 
-    environ = loadBackground()
-    ourActor = actor.makeActor(environ, True)
-    GraphicEffects.loadFog(7)
-    camInterval(testModel, ourActor)
+    # Loading the background
+    environ = loadWorld()
 
+    # Setting up the actor
+    ourActor = actor.makeActor()
+    ourActor.reparentTo(render)
+    ourActor.setPos(environ.getPos(environ.find('**/ground')))
 
+    #EffectsManager.loadFog(7)
+    loadFog()
+    camInterval(secretCamera, ourActor)
 
     #objectList = list()
     #objectList.append(actorHead)
-
 
 def loadFog():
     fog = Fog('distanceFog')
@@ -65,26 +67,19 @@ def loadFog():
     fog.setOverallHidden(False)
     return fog.getExpDensity()
 
-
-def loadBackground():
+def loadWorld():
     background = loader.loadModel('phase_4/models/minigames/treehouse_2players.bam')
     background.reparentTo(render)
     #background.place()
     background.setPosHprScale(0.00, 15.00, -3.00, 0.00, 270.00, 180.00, 1.00, 1.00, 1.00)
     return background
 
-
-
-
-
 def camInterval(cam, actor):
     inc = cam.getX(), cam.getY() + 10, cam.getZ()
     #print(inc)
     #maybe a list of numbers-- an array for x, y, z, a method (manX, manY, manZ) man = manipulate by +- int, ret that array which will be used
     #as the Point3 args. if args are NaN/0/null, just ret the xyz arr. will be used to get the last position args for after the sequence finalizes.
-    # just realized, look at line 53 instead of array
     intervalOne = cam.posInterval(4.0, Point3(inc))
-    #print('pos during interval: ', str(cam.getPos()))
     camSequence = Sequence(intervalOne)
     camSequence.append(Func(loadButtons, actor))
 
@@ -170,8 +165,3 @@ def changeHead(ourActor, modelName):
     testobjectindex = len(objectList)
     #print(testobjectindex)
     #print(objectList)
-
-
-
-#game = Customize()
-#game.run()

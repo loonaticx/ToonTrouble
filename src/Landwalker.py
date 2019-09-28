@@ -1,98 +1,53 @@
 import os
+import sys
 
 from panda3d.core import *
 from panda3d.core import CollisionTraverser
-from panda3d.core import PandaNode, NodePath, TextNode
+from panda3d.core import PandaNode, NodePath
 
-import ActorManager
 from direct.controls.GravityWalker import GravityWalker
 from direct.filter.CommonFilters import CommonFilters
 from direct.gui.DirectButton import DirectButton
 from direct.gui.DirectScrolledList import DirectScrolledList
-from direct.gui.OnscreenImage import OnscreenImage
-from direct.gui.OnscreenText import OnscreenText
 from direct.showbase.ShowBase import ShowBase
 from direct.task import Task
-from src import Customize, ActorDict
-
-
-#import ConfigMgr
-
+from src.actor import ActorDict, ActorManager
+from src import AvatarControls, GameGlobals
+from src.scenefx import EffectsManager
 
 #borrowed the xray mod from /samples/culling/portal_culling.py
 # https://www.panda3d.org/manual/?title=Common_Image_Filters
 #possibly make a slider for bloom
 #YO WHAT IF I MAKE A BENCHMARK PROGRAM
 
-offset = 3.2375
+objectList = list()
 
 actor = ActorManager
 
-# Store which keys are currently pressed
-keyMap = {
-    "1": 0,
-    "escape": 0,
-    "left": 0,
-    "right": 0,
-    "forward": 0,
-    "backward": 0,
-    "cam-left": 0,
-    "cam-right": 0,
-}
-
-
-def addInstructions(pos, msg):
-    return OnscreenText(text=msg, style=1, fg=(1, 1, 1, 1),
-                        parent=base.a2dTopLeft, align=TextNode.ALeft,
-                        pos=(0.08, -pos - 0.04), scale=.05)
-
-class Landwalker(ShowBase):
-    def __init__():
-        loadPrcFile('../config/Config.prc')
-        #loadPrcFile("Config.prc")
-        ShowBase.__init__()
-        #config = ConfigMgr.loadSettings()
-
-        #Config stuff here
-        filters = CommonFilters(base.win, base.cam)
-        AOEnabled = False
-        bloomEnabled = False
-        invertEnabled = False
-        OSD = True
-        shadersLoaded = False
-        xray_mode = False
-        show_model_bounds = False
-        fogEnabled = True
-        mouseEnabled = False
-
-
+#filters = CommonFilters(base.win, base.cam)
+graphicShaders = EffectsManager
 
 def loadGame():
-    # Adding onscreen text here
-    inst1 = addInstructions(0.06, "Press F to toggle wireframe")
-    inst2 = addInstructions(0.12, "Press X to toggle xray")
-    inst3 = addInstructions(0.18, "Press 1 to activate cartoon shading")
-    inst4 = addInstructions(0.24, "Press 2 to deactivate cartoon shading")
-    inst4 = addInstructions(0.30, "Press 3 to toggle fog")
-    inst4 = addInstructions(0.36, "Press 4 to toggle free camera")
-    inst4 = addInstructions(0.42, "Press 5 to toggle bloom")
-    inst4 = addInstructions(0.48, "Press 6 to toggle Ambient Occlusion")
-    inst4 = addInstructions(0.54, "Press Escape to toggle the onscreen debug")
+    # Setting up key maps and the instruction set into the scene...
+    GameGlobals.setKeys()
+    GameGlobals.setInstructions()
 
-    #Loading required modules...
+    # Loads our world.
     scene = loadWorld()
-    localAvatar = actor.makeActor(scene, False)
-    #localAvatar.reparentTo(render)
-    #localAvatar.reparentTo(scene.find('**/ground'))
 
+    # Makes our local avatar.
+    localAvatar = actor.makeActor()
     base.localAvatar = localAvatar
+    base.localAvatar.reparentTo(render)
+
+    # Load our buttons.
     LoadButtons()
-    #loadShaders()
-    FogDensity = loadFog()
 
-    objectList = list()
-    objectList.append(scene)
-
+    # Load our shaders.
+    #fog = loadFog()
+    #print(fogStats(fog))
+    EffectsManager.loadShaders()
+    #FogDensity = EffectsManager.loadFog(1)
 
     # Floater Object (For camera)
     floater = NodePath(PandaNode("floater"))
@@ -104,75 +59,55 @@ def loadGame():
     # Set Camera
     camera.reparentTo(floater)
 
-    # Accept the control keys for movement and rotation
-    #ShowBase.accept('f', toggleWireframe)
-    #ShowBase.accept('x', toggle_xray_mode)
-    #ShowBase.accept('b', toggle_model_bounds)
-    #ShowBase.accept("escape", toggle_osd)
-    #ShowBase.accept("1", loadCartoonShaders)
-    #ShowBase.accept("2", unloadShaders)
-    #ShowBase.accept("3", toggleFog)
-    #ShowBase.accept("4", toggleCamera)
-    #ShowBase.accept("5", toggleBloom)
-    #ShowBase.accept("6", toggleAmbientOcclusion)
-
-    #warning: bright! accept("6", toggleInvert)
-
-
-    #accept("arrow_left", setKey, ["left", True])
-    #accept("arrow_right", setKey, ["right", True])
-    #accept("arrow_up", setKey, ["forward", True])
-    #accept("arrow_down", setKey, ["backward", True])
-    #accept("arrow_left-up", setKey, ["left", False])
-    #accept("arrow_right-up", setKey, ["right", False])
-    #accept("arrow_up-up", setKey, ["forward", False])
-    #accept("arrow_down-up", setKey, ["backward", False])
-
-    taskMgr.add(move, "moveTask")
-
-
-
-
-    offset = 3.2375
-
     wallBitmask = BitMask32(1)
     floorBitmask = BitMask32(2)
     base.cTrav = CollisionTraverser()
 
+    # Walk controls
     walkControls = GravityWalker(legacyLifter=True)
     walkControls.setWallBitMask(wallBitmask)
     walkControls.setFloorBitMask(floorBitmask)
     walkControls.setWalkSpeed(16.0, 24.0, 8.0, 80.0)
     walkControls.initializeCollisions(base.cTrav, localAvatar, floorOffset=0.025, reach=4.0)
-    walkControls.setAirborneHeightFunc(getAirborneHeight())
+    walkControls.setAirborneHeightFunc(AvatarControls.getAirborneHeight())
     walkControls.enableAvatarControls()
     # controlManager.add(walkControls, 'walk')
     localAvatar.physControls = walkControls
-
     localAvatar.physControls.placeOnFloor()
-    # problem: onScreenDebug.enabled = toggle
 
-    # print(updateOnScreenDebug.enabled)
-
+    # Some debug stuff, should be moved later once I can toggle stuff from different files./
     onScreenDebug.enabled = True
     base.setFrameRateMeter(True)
-    PStatClient.connect()
-
+    base.taskMgr.add(AvatarControls.move, "moveTask")
     base.taskMgr.add(updateOnScreenDebug, 'UpdateOSD')
 
+# Loading our world.
 def loadWorld():
-    #Loading our Scene
-    background = loader.loadModel("models/world.egg.pz")
+    # Loading our Scene
+    background = loader.loadModel('phase_4/models/neighborhoods/toontown_central.bam')
     background.reparentTo(render)
+    background.show()
+    objectList.append(background)
+    print("Loading world")
     return background
-
-    #scene.setBackgroundColor(0.53, 0.80, 0.92, 1)
 
 def removeWorld(scene):
     scene.removeNode()
 
+# This shouldn't exist in the future for this class.
+def loadFog():
+    fog = Fog('distanceFog')
+    fog.setColor(0, 0, 0)
+    fog.setExpDensity(.07)
+    render.setFog(fog)
+    fog.setOverallHidden(False)
+    return fog
+
+def fogStats(fog):
+    return [fog, fog.getExpDensity(), GameGlobals.fogEnabled]
+
+# Loading our actor.
 def getActor():
-    # Loading our Actor
     actorStartPos = scene.find("**/start_point").getPos()
     actorBody = ActorDict.playerBody
     actorBody.reparentTo(render)
@@ -191,6 +126,7 @@ def getActor():
     ActorHead()
     return actorBody
 
+# Loading onscreen buttons.
 def LoadButtons():
     Button_Up = loader.loadModel('phase_3/models/gui/quit_button.bam').find('**/QuitBtn_UP')
     Button_Down = loader.loadModel('phase_3/models/gui/quit_button.bam').find('**/QuitBtn_DN')
@@ -233,9 +169,9 @@ def LoadButtons():
                          text_scale=0.045, text_pos=(0, -0.007, 0), relief=None)
         myScrolledList.addItem(l)
 
-#will be used to spawn objects
+# Used to spawn objects within the scene.
 def spawnObject(modelName):
-    #if spawned object already exists, we're gonna need to remove it
+    # If spawned object already exists, we're gonna need to remove it
     while len(objectList) >= 1:
         for world in objectList:
             world.removeNode()
@@ -244,104 +180,10 @@ def spawnObject(modelName):
     spawnedObject = loader.loadModel(modelName)
     spawnedObject.reparentTo(render)
     spawnedObject.setPos(base.localAvatar.getPos())
-    #spawnedObject = scene
-    #removeWorld(objectList.find(spawnedObject))
     objectList.append(spawnedObject)
+
     print("Model Name: " + repr(modelName))
     print("Spawned Object: " + repr(spawnedObject))
-    testobjectindex = len(objectList)
-    print(testobjectindex)
-    print(objectList)
-    #removeWorld()
-
-
-def loadPStats():
-    os.system("pstats.exe")
-
-
-def loadFog():
-    fog = Fog('distanceFog')
-    fog.setColor(0, 0, 0)
-    fog.setExpDensity(.01)
-    render.setFog(fog)
-    fog.setOverallHidden(False)
-    return fog.getExpDensity()
-
-def loadShaders():
-    normalsBuffer = win.makeTextureBuffer("normalsBuffer", 0, 0)
-    normalsBuffer.setClearColor(LVecBase4(0.5, 0.5, 0.5, 1))
-    normalsBuffer = normalsBuffer
-    normalsCamera = makeCamera(
-        normalsBuffer, lens=cam.node().getLens())
-    normalsCamera.node().setScene(render)
-
-    drawnScene = normalsBuffer.getTextureCard()
-    drawnScene.setTransparency(1)
-    drawnScene.setColor(1, 1, 1, 0)
-    drawnScene.reparentTo(render2d)
-    drawnScene = drawnScene
-
-def toggleAmbientOcclusion():
-    if not AOEnabled:
-        filters.setAmbientOcclusion()
-        AOEnabled = True
-    else:
-        filters.delAmbientOcclusion()
-        AOEnabled = False
-
-def toggleInvert():
-    if not invertEnabled:
-        filters.setInverted()
-        invertEnabled = True
-    else:
-        filters.delInverted()
-        invertEnabled = False
-
-def toggleBloom():
-    if not bloomEnabled:
-        filters.setBloom()
-        bloomEnabled = True
-    else:
-        filters.delBloom()
-        bloomEnabled = False
-
-def toggleCamera():
-    if not mouseEnabled:
-        base.enableMouse()
-        mouseEnabled = True
-    else:
-        base.disableMouse()
-        camera.setPosHpr(0, 0, 0, 0, 0, 0)
-        mouseEnabled = False
-
-def toggleFog():
-    if not fogEnabled:
-        fog.setExpDensity(FogDensity)
-        fogEnabled = True
-    else:
-        fog.setExpDensity(0)
-        fogEnabled = False
-
-def toggle_xray_mode():
-    """Toggle X-ray mode on and off. This is useful for seeing the
-    effectiveness of the portal culling."""
-    xray_mode = not xray_mode
-    if xray_mode:
-        scene.setColorScale((1, 1, 1, 0.5))
-        scene.setTransparency(TransparencyAttrib.MDual)
-    else:
-        scene.setColorScaleOff()
-        scene.setTransparency(TransparencyAttrib.MNone)
-
-def toggle_model_bounds():
-    """Toggle bounding volumes on and off on the models."""
-    show_model_bounds = not show_model_bounds
-    if show_model_bounds:
-        for model in objectList:
-            model.showBounds()
-    else:
-        for model in objectList:
-            model.hideBounds()
 
 def toggle_osd():
     OSD = not OSD
@@ -349,9 +191,6 @@ def toggle_osd():
         onScreenDebug.enabled = True
     else:
         onScreenDebug.enabled = False
-
-def getAirborneHeight():
-    return offset + 0.025000000000000001
 
 def updateOnScreenDebug(task):
     if(onScreenDebug.enabled):
@@ -377,47 +216,5 @@ def loadCartoonShaders():
         drawnScene.setShaderInput("cutoff", LVecBase4(cutoff))
         drawnScene.show()
         shadersLoaded = True
-
-
-# Records the state of the arrow keys
-def setKey(key, value):
-    keyMap[key] = value
-
-
-
-# Accepts arrow keys to move either the player or the menu cursor,
-# Also deals with grid checking and collision detection
-def move(task):
-    dt = globalClock.getDt()
-    if keyMap["forward"]:
-            base.localAvatar.setY(base.localAvatar, 20 * dt)
-    elif keyMap["backward"]:
-            base.localAvatar.setY(base.localAvatar, -20 * dt)
-    if keyMap["left"]:
-            base.localAvatar.setHpr(base.localAvatar.getH() + 1.5, base.localAvatar.getP(), base.localAvatar.getR())
-    elif keyMap["right"]:
-            base.localAvatar.setHpr(base.localAvatar.getH() - 1.5, base.localAvatar.getP(), base.localAvatar.getR())
-
-    currentAnim = base.localAvatar.getCurrentAnim()
-
-    if keyMap["forward"]:
-        if currentAnim != "walk":
-            base.localAvatar.loop("walk")
-    elif keyMap["backward"]:
-        # Play the walk animation backwards.
-        if currentAnim != "walk":
-            base.localAvatar.loop("walk")
-        base.localAvatar.setPlayRate(-1.0, "walk")
-    elif keyMap["left"] or keyMap["right"]:
-        if currentAnim != "walk":
-            base.localAvatar.loop("walk")
-        base.localAvatar.setPlayRate(1.0, "walk")
-    else:
-        if currentAnim is not None:
-            base.localAvatar.stop()
-            base.localAvatar.loop("neutral")
-            isMoving = False
-
-    return task.cont
 
 
