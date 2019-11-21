@@ -1,0 +1,12 @@
+
+.idea/misc.xml
+.idea/modules.xml
+.idea/panda3d-project.iml
+.idea/workspace.xml
+.vscode
+src/__pycache__/*
+
+*.py[c|o]
+.idea/workspace.xml
+.idea/panda3d-project.iml
+.idea/workspace.xml

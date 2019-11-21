@@ -1,0 +1,52 @@
+C:\Panda3D-1.10.3-x64\python\ppython.exe -m pip install psutil
+
+###
+
+from src.enemy import EnemyDNA, Enemy
+import random
+
+startX = 0
+startY = -55
+xCount = 6
+yCount = 4
+incrementX = 7.5
+incrementY = -7.5
+
+for snowball in snowballs:
+    snowball.delete()
+
+snowballs = []
+
+for i in range(xCount):
+    for j in range(yCount):
+        x = startX + (i * incrementX)
+        y = startY + (j * incrementY)
+        enemy = Enemy.Enemy()
+        dna = EnemyDNA.EnemyDNA()
+        dna.newEnemy(random.choice(EnemyDNA.enemyHeadTypes))
+        enemy.setDNA(dna)
+        enemy.reparentTo(render)
+        enemy.setPos(x, y, 0.025)
+        enemy.setH(180)
+        enemy.loop('neutral')
+        snowballs.append(enemy)
+        
+=======================================
+from src.enemy import EnemyDNA, Enemy
+import random
+
+startX = 0
+startY = -55
+xCount = 6
+yCount = 4
+incrementX = 7.5
+incrementY = -7.5
+
+enemy = Enemy.Enemy()
+dna = EnemyDNA.EnemyDNA()
+dna.newEnemy(random.choice(EnemyDNA.enemyHeadTypes))
+enemy.setDNA(dna)
+enemy.reparentTo(render)
+enemy.setPos(base.arena.enemyGrid.occupyRandomSpot(enemy.getToken()))
+enemy.setH(180)
+enemy.loop('neutral')
