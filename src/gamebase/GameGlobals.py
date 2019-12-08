@@ -28,5 +28,5 @@ SignFont = None
 def getSignFont():
     global SignFont
     if not SignFont:
-        SignFont = loader.loadFont('phase_3/models/fonts/MickeyFont', lineHeight=1.0)
+        SignFont = loader.loadFont('phase_3/models/fonts/MickeyFont.bam', lineHeight=1.0)
     return SignFont

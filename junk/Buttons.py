@@ -23,7 +23,7 @@ def buttons(self, text):
                         text_scale=0.059999999999999998, borderWidth=(0.015, 0.01), scale=.7)
 
     Button1.setPosHprScale(0.00, 0.00, 0.30, 0.00, 0.00, 0.00, 2.53, 2.53, 2.53)
-    Button1.place()
+    #Button1.place()
 
     # ImgBtn1.reparentTo(self.render2d)
 

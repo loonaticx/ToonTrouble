@@ -23,7 +23,7 @@ def loadEnemyModelsAndAnims():
         filepath = 'phase_3.5' + model + 'mod'
         Preloaded[filepath] = loader.loadModel(filepath)
         filepath = 'phase_' + str(phase) + model + 'heads'
-        Preloaded[filepath] = loader.loadModel(filepath)
+        Preloaded[filepath] = loader.loadModel(filepath + '.bam')
 
 def loadDialog():
     global EnemyDialogArray
